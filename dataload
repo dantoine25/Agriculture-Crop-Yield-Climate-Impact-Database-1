@@ -1,0 +1,104 @@
+import csv
+import os
+import sys
+import argparse
+import mysql.connector
+from mysql.connector import Error
+
+parser = argparse.ArgumentParser(description="Load agricultural CSV data into MySQL/MariaDB.")
+parser.add_argument("--host",     default="localhost",        help="DB host")
+parser.add_argument("--user",     default="root",             help="DB user")
+parser.add_argument("--password", default="",                 help="DB password")
+parser.add_argument("--db",       default="agricultural_db",  help="Database name")
+parser.add_argument("--data-dir", default="data",             help="Folder containing CSV files")
+args = parser.parse_args()
+
+DATA_DIR = args.data_dir
+
+try:
+    conn = mysql.connector.connect(
+        host=args.host,
+        user=args.user,
+        password=args.password,
+        database=args.db
+    )
+    cursor = conn.cursor()
+    print(f"Connected to '{args.db}' on {args.host}.")
+except Error as e:
+    print(f"Connection error: {e}")
+    sys.exit(1)
+
+def load_csv(filename: str, table: str, columns: list):
+    """Read a CSV and INSERT rows into the given table."""
+    path = os.path.join(DATA_DIR, filename)
+    if not os.path.exists(path):
+        print(f"  [SKIP] {path} not found.")
+        return
+    placeholders = ", ".join(["%s"] * len(columns))
+    col_names    = ", ".join(columns)
+    sql = f"INSERT INTO {table} ({col_names}) VALUES ({placeholders})"
+    inserted = 0
+    errors   = 0
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            values = []
+            for col in columns:
+                val = row.get(col, "").strip()
+                # Convert empty strings to None (SQL NULL)
+                values.append(None if val == "" else val)
+            try:
+                cursor.execute(sql, values)
+                inserted += 1
+            except Error as e:
+                errors += 1
+                if errors <= 3:          # only print first few errors
+                    print(f"    Row error ({table}): {e} | row={row}")
+    conn.commit()
+    print(f"  {table:<22} — {inserted:>4} rows inserted, {errors} errors.")
+
+print("\nLoading data...\n")
+
+load_csv("farmer.csv", "Farmer", [
+    "FarmerID","FarmerName","PhoneNumber","Email","Address","NationalID"
+])
+
+load_csv("farm.csv", "Farm", [
+    "FarmID","FarmName","Location","TotalAreaHa","CultivatedAreaHa",
+    "OrganicCertified","FarmerID"
+])
+
+load_csv("varietyinfo.csv", "VarietyInfo", [
+    "VarietyName","TypicalYieldKgPerHa","ManagementPracticeNotes"
+])
+
+load_csv("geneticvariety.csv", "GeneticVariety", [
+    "VarietyID","VarietyName","FarmID"
+])
+
+load_csv("crop.csv", "Crop", [
+    "CropID","FarmID","CropName","PlantingDate","HarvestDate",
+    "GeneticVariety","ManagementNotes"
+])
+
+load_csv("yieldrecord.csv", "YieldRecord", [
+    "YieldRecordID","FarmID","CropID","Yield","ManagementPracticeNotes"
+])
+
+load_csv("weatherstation.csv", "WeatherStation", [
+    "StationID","Latitude","Longitude","Elevation"
+])
+
+load_csv("climateobservation.csv", "ClimateObservation", [
+    "ObservationID","StationID","ObserveDate","TemperatureC",
+    "PrecipitationMm","SolarRadiation","IndPreseMMBs","Notes"
+])
+
+load_csv("soilprofile.csv", "SoilProfile", [
+    "SoilProfileID","StationID","FarmID","pH","OrganicMatterPct",
+    "Texture","LastSampleDate"
+])
+
+cursor.close()
+conn.close()
+print("\nAll data loaded successfully. Connection closed.")
