@@ -1,0 +1,274 @@
+import csv
+import os
+import random
+import string
+from datetime import date, timedelta, datetime
+
+random.seed(42)
+OUTPUT_DIR = "data"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def rand_date(start: date, end: date) -> date:
+    return start + timedelta(days=random.randint(0, (end - start).days))
+
+def write_csv(filename: str, fieldnames: list, rows: list):
+    path = os.path.join(OUTPUT_DIR, filename)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"  Wrote {len(rows):>4} rows → {path}")
+
+
+FIRST_NAMES = ["Alice","Bob","Carol","David","Eve","Frank","Grace","Henry",
+               "Iris","Jack","Karen","Leo","Mia","Nate","Olivia","Paul",
+               "Quinn","Rachel","Sam","Tina","Uma","Victor","Wendy","Xander",
+               "Yara","Zoe","Aaron","Beth","Carlos","Diana"]
+LAST_NAMES  = ["Johnson","Martinez","Smith","Brown","Wilson","Moore","Taylor",
+               "Anderson","Thomas","Jackson","White","Harris","Martin","Garcia",
+               "Thompson","Robinson","Clark","Lewis","Lee","Walker","Hall",
+               "Allen","Young","Hernandez","King","Wright","Lopez","Hill",
+               "Scott","Green"]
+STATES = ["Iowa","Kansas","Nebraska","Illinois","Indiana","Ohio","Minnesota",
+          "Missouri","Wisconsin","Michigan","North Dakota","South Dakota",
+          "Oklahoma","Texas","Colorado"]
+
+farmers = []
+used_nids = set()
+for i in range(1, 101):
+    fid = f"F{i:03d}"
+    fname = random.choice(FIRST_NAMES) + " " + random.choice(LAST_NAMES)
+    phone = f"555-{random.randint(1000,9999)}"
+    email = fname.lower().replace(" ", ".") + f"{i}@farm.com"
+    state = random.choice(STATES)
+    address = f"{random.randint(1,999)} {random.choice(['Oak','Elm','Prairie','Ridge','Maple'])} {random.choice(['Lane','Rd','St','Ave','Dr'])}, {state}"
+    nid = f"NID-{i:03d}"
+    farmers.append(dict(FarmerID=fid, FarmerName=fname, PhoneNumber=phone,
+                        Email=email, Address=address, NationalID=nid))
+
+write_csv("farmer.csv",
+          ["FarmerID","FarmerName","PhoneNumber","Email","Address","NationalID"],
+          farmers)
+
+
+FARM_ADJECTIVES = ["Green","Sunset","Blue Ridge","Golden","Silver","Iron",
+                   "Lone Star","Prairie","Harvest","Meadow","River","Hilltop",
+                   "Valley","Morning","Twilight"]
+FARM_NOUNS = ["Acres","Fields","Farm","Ranch","Homestead","Grove","Plains",
+              "Pastures","Estates","Hollow"]
+
+farmer_ids = [f["FarmerID"] for f in farmers]
+farms = []
+for i in range(1, 101):
+    fmid = f"FM{i:02d}"
+    name = random.choice(FARM_ADJECTIVES) + " " + random.choice(FARM_NOUNS)
+    state = random.choice(STATES)
+    location = f"{state}, USA"
+    total = round(random.uniform(50, 500), 2)
+    cultivated = round(total * random.uniform(0.6, 0.95), 2)
+    organic = random.choice(["TRUE","FALSE"])
+    farmer = random.choice(farmer_ids)
+    farms.append(dict(FarmID=fmid, FarmName=name, Location=location,
+                      TotalAreaHa=total, CultivatedAreaHa=cultivated,
+                      OrganicCertified=organic, FarmerID=farmer))
+
+write_csv("farm.csv",
+          ["FarmID","FarmName","Location","TotalAreaHa","CultivatedAreaHa",
+           "OrganicCertified","FarmerID"],
+          farms)
+
+
+VARIETY_BASES = [
+    ("Corn-X99",   9800.00, "Requires drip irrigation"),
+    ("Corn-A50",   9200.00, "Drought tolerant hybrid"),
+    ("Corn-B77",   8700.00, "Short-season variety"),
+    ("Wheat-Gold", 4500.50, "Cool-season variety"),
+    ("Wheat-Red",  4200.00, "Winter wheat, cold hardy"),
+    ("Wheat-Soft", 3900.00, "Soft red winter wheat"),
+    ("Soy-Ultra",  3200.00, "Nitrogen-fixing low input"),
+    ("Soy-Pro",    3500.00, "High protein variety"),
+    ("Soy-Round",  3100.00, "Herbicide tolerant"),
+    ("Barley-M1",  3800.00, "Malting barley"),
+    ("Barley-F2",  4000.00, "Feed barley high yield"),
+    ("Cotton-DP",  1800.00, "Defoliation resistant"),
+    ("Cotton-ST",  1750.00, "Storm resistant boll"),
+    ("Rice-L1",    6000.00, "Long grain variety"),
+    ("Rice-S2",    5800.00, "Short grain aromatic"),
+    ("Oat-V1",     2800.00, "Spring oat variety"),
+    ("Oat-W2",     2600.00, "Winter oat cold tolerant"),
+    ("Sunflower-H",2200.00, "High oleic oil type"),
+    ("Sunflower-C",2100.00, "Confectionery type"),
+    ("Sorghum-G1", 5500.00, "Grain sorghum drought tolerant"),
+    ("Alfalfa-A1", 9000.00, "Perennial high biomass"),
+    ("Canola-H1",  2000.00, "Hybrid canola low erucic"),
+    ("Peanut-V1",  3600.00, "Virginia type runner"),
+    ("Tobacco-B",  2400.00, "Burley tobacco variety"),
+    ("Tomato-HY",  45000.00,"Hybrid processing tomato"),
+    ("Potato-R1",  35000.00,"Russet processing potato"),
+    ("Lettuce-C1", 25000.00,"Crisphead iceberg type"),
+    ("Pepper-B1",  18000.00,"Bell pepper blocky type"),
+    ("Cucumber-P", 22000.00,"Pickling cucumber"),
+    ("Cabbage-G1", 30000.00,"Green storage cabbage"),
+]
+
+variety_infos = [dict(VarietyName=v[0], TypicalYieldKgPerHa=v[1],
+                      ManagementPracticeNotes=v[2]) for v in VARIETY_BASES]
+
+write_csv("varietyinfo.csv",
+          ["VarietyName","TypicalYieldKgPerHa","ManagementPracticeNotes"],
+          variety_infos)
+
+
+farm_ids = [f["FarmID"] for f in farms]
+variety_names = [v["VarietyName"] for v in variety_infos]
+used_gv_combos = set()
+genetic_varieties = []
+for i in range(1, 101):
+    gvid = f"GV{i:03d}"
+    while True:
+        vname = random.choice(variety_names)
+        fmid  = random.choice(farm_ids)
+        if (vname, fmid) not in used_gv_combos:
+            used_gv_combos.add((vname, fmid))
+            break
+    genetic_varieties.append(dict(VarietyID=gvid, VarietyName=vname, FarmID=fmid))
+
+write_csv("geneticvariety.csv",
+          ["VarietyID","VarietyName","FarmID"],
+          genetic_varieties)
+
+
+CROP_NAMES = ["Corn","Wheat","Soybean","Barley","Cotton","Rice","Oat",
+              "Sunflower","Sorghum","Alfalfa","Canola","Peanut","Tomato",
+              "Potato","Lettuce","Pepper","Cucumber","Cabbage"]
+
+variety_yield = {v["VarietyName"]: v["TypicalYieldKgPerHa"] for v in variety_infos}
+
+used_crop_keys = set()
+crops = []
+for i in range(1, 101):
+    cid = f"C{i:03d}"
+    while True:
+        fmid = random.choice(farm_ids)
+        crop_name = random.choice(CROP_NAMES)
+        plant_date = rand_date(date(2023,1,1), date(2024,6,1))
+        key = (fmid, plant_date, crop_name)
+        if key not in used_crop_keys:
+            used_crop_keys.add(key)
+            break
+    grow_days = random.randint(90, 270)
+    harvest_date = plant_date + timedelta(days=grow_days)
+    matching = [v for v in variety_names if crop_name.lower() in v.lower()]
+    gv = random.choice(matching) if matching else random.choice(variety_names)
+    notes_options = ["Irrigated weekly","Rain-fed","Minimal fertilizer",
+                     "Cover crop rotation","Integrated pest management",
+                     "No-till practice","Drip irrigation","Furrow irrigation"]
+    crops.append(dict(CropID=cid, FarmID=fmid, CropName=crop_name,
+                      PlantingDate=plant_date, HarvestDate=harvest_date,
+                      GeneticVariety=gv, ManagementNotes=random.choice(notes_options)))
+
+write_csv("crop.csv",
+          ["CropID","FarmID","CropName","PlantingDate","HarvestDate",
+           "GeneticVariety","ManagementNotes"],
+          crops)
+
+
+crop_ids  = [c["CropID"]  for c in crops]
+crop_farm = {c["CropID"]: c["FarmID"] for c in crops}
+
+yr_notes = ["Slight drought mid-season","Average rainfall year","Good yield no pests",
+            "Early frost reduced yield","Excellent growing season",
+            "Pest pressure managed","Fungal disease minor impact",
+            "Flooding delayed planting","Record heat in July","Normal season"]
+
+yield_records = []
+for i in range(1, 101):
+    yrid = f"YR{i:03d}"
+    cid  = random.choice(crop_ids)
+    fmid = crop_farm[cid]
+    base_yield = float(variety_yield.get(
+        next((c["GeneticVariety"] for c in crops if c["CropID"]==cid), None) or "Corn-X99",
+        5000))
+    actual_yield = round(base_yield * random.uniform(0.80, 1.05), 2)
+    yield_records.append(dict(YieldRecordID=yrid, FarmID=fmid, CropID=cid,
+                              Yield=actual_yield,
+                              ManagementPracticeNotes=random.choice(yr_notes)))
+
+write_csv("yieldrecord.csv",
+          ["YieldRecordID","FarmID","CropID","Yield","ManagementPracticeNotes"],
+          yield_records)
+
+
+used_coords = set()
+stations = []
+for i in range(1, 101):
+    wsid = f"WS{i:03d}"
+    while True:
+        lat = round(random.uniform(30.0, 49.0), 6)
+        lon = round(random.uniform(-105.0, -80.0), 6)
+        if (lat, lon) not in used_coords:
+            used_coords.add((lat, lon))
+            break
+    elev = round(random.uniform(100, 600), 2)
+    stations.append(dict(StationID=wsid, Latitude=lat, Longitude=lon, Elevation=elev))
+
+write_csv("weatherstation.csv",
+          ["StationID","Latitude","Longitude","Elevation"],
+          stations)
+
+
+station_ids = [s["StationID"] for s in stations]
+used_obs_keys = set()
+observations = []
+for i in range(1, 101):
+    oid = f"OBS{i:03d}"
+    while True:
+        sid = random.choice(station_ids)
+        obs_dt = datetime(random.randint(2023,2024),
+                          random.randint(1,12),
+                          random.randint(1,28),
+                          random.choice([6,8,10,12,14,16,18]),0)
+        key = (sid, obs_dt)
+        if key not in used_obs_keys:
+            used_obs_keys.add(key)
+            break
+    temp   = round(random.uniform(-5, 40), 2)
+    precip = round(random.uniform(0, 30), 2)
+    solar  = round(random.uniform(5, 30), 2)
+    press  = round(random.uniform(1005, 1025), 2)
+    note   = random.choice(["Clear morning","Hot and dry","Overcast","Partly cloudy",
+                             "Heavy rain","Light breeze","Foggy","Thunderstorm risk"])
+    observations.append(dict(ObservationID=oid, StationID=sid,
+                             ObserveDate=obs_dt.strftime("%Y-%m-%d %H:%M"),
+                             TemperatureC=temp, PrecipitationMm=precip,
+                             SolarRadiation=solar, IndPreseMMBs=press, Notes=note))
+
+write_csv("climateobservation.csv",
+          ["ObservationID","StationID","ObserveDate","TemperatureC",
+           "PrecipitationMm","SolarRadiation","IndPreseMMBs","Notes"],
+          observations)
+
+
+TEXTURES = ["Loam","Sandy Loam","Clay Loam","Silt Loam","Sandy Clay",
+            "Silty Clay","Clay","Sand","Silt","Loamy Sand"]
+
+soil_profiles = []
+for i, (farm, station) in enumerate(zip(farms, stations), start=1):
+    spid = f"SP{i:03d}"
+    soil_profiles.append(dict(
+        SoilProfileID    = spid,
+        StationID        = station["StationID"],
+        FarmID           = farm["FarmID"],
+        pH               = round(random.uniform(5.5, 8.0), 2),
+        OrganicMatterPct = round(random.uniform(1.0, 6.0), 2),
+        Texture          = random.choice(TEXTURES),
+        LastSampleDate   = rand_date(date(2023,1,1), date(2024,6,1))
+    ))
+
+write_csv("soilprofile.csv",
+          ["SoilProfileID","StationID","FarmID","pH","OrganicMatterPct",
+           "Texture","LastSampleDate"],
+          soil_profiles)
+
+print("\nAll CSV files generated successfully in the 'data/' folder.")
